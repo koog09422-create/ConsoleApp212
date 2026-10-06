@@ -1,0 +1,167 @@
+﻿using System;
+using System.IO; // تم إضافتها للتعامل مع الملفات النصية
+using res_user;
+
+namespace ConsoleApp212
+{
+    class Employee : User, IEmployeeActions
+    {
+        // احقل تاريخ إنشاء الموظف
+        public DateTime CreatedAt { get; private set; }
+
+        public Employee(string username, string password) : base(username, password)
+        {
+            CreatedAt = DateTime.Now; // تعيين تاريخ وقت الإنشاء تلقائياً
+        }
+
+        // تعديل المشكلة  override للرجوع Employee
+        public override string GetRole()
+        {
+            return "Employee";
+        }
+
+        public override void ShowMenu()
+        {
+            while (true)
+            {
+                Console.WriteLine("\n--- Employee Menu ---");
+                Console.WriteLine("1. Add Meal");
+                Console.WriteLine("2. View Meals");
+                Console.WriteLine("3. Order Meal");
+                Console.WriteLine("4. View Bills");
+                Console.WriteLine("5. Save Bills To File");
+                Console.WriteLine("6. Logout");
+                Console.Write("Enter your choice: ");
+                string choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    case "1":
+                        AddMeal();
+                        break;
+                    case "2":
+                        ViewMeals();
+                        break;
+                    case "3":
+                        OrderMeal();
+                        break;
+                    case "4":
+                        ViewBills();
+                        break;
+                    case "5":
+                        SaveBillsToFile();
+                        break;
+                    case "6":
+                        Console.WriteLine("Logging out...");
+                        return;
+                    default:
+                        Console.WriteLine("Invalid choice, please try again.");
+                        break;
+                }
+            }
+        }
+
+        public void AddMeal()
+        {
+            Console.Write("Enter meal name: ");
+            string name = Console.ReadLine();
+            Console.Write("Enter meal price: ");
+            int price = int.Parse(Console.ReadLine());
+
+            //  تمرير السعر كبرامتر تاني للباني عل قافية :)
+            RestaurantData.Meals.Add(new Meal(name, price));
+
+            Console.WriteLine("Meal added successfully.");
+        }
+
+        public void ViewMeals()
+        {
+            if (RestaurantData.Meals.Count == 0)
+            {
+                Console.WriteLine("No meals available.");
+                return;
+            }
+
+            Console.WriteLine("\n--- Meal List ---");
+
+            foreach (var meal in RestaurantData.Meals)
+            {
+                Console.WriteLine($"{meal.Name} - ${meal.Price}");
+            }
+        }
+
+        public void OrderMeal()
+        {
+            Console.Write("Enter meal name to order: ");
+            string mealName = Console.ReadLine();
+
+            Meal foundMeal = null;
+
+            foreach (var meal in RestaurantData.Meals)
+            {
+                if (meal.Name.ToLower() == mealName.ToLower())
+                {
+                    foundMeal = meal;
+                    break;
+                }
+            }
+
+            if (foundMeal == null)
+            {
+                Console.WriteLine("Meal not found.");
+                return;
+            }
+
+            Console.Write("Enter quantity: ");
+            int quantity = int.Parse(Console.ReadLine());
+
+            decimal total = foundMeal.Price * quantity;
+
+            Bill bill = new Bill(foundMeal.Name, quantity, total, Username);
+            RestaurantData.Bills.Add(bill);
+
+            Console.WriteLine("Order placed: " + quantity + "x " + foundMeal.Name + ", Total: $" + total);
+        }
+
+        public void ViewBills()
+        {
+            if (RestaurantData.Bills.Count == 0)
+            {
+                Console.WriteLine("No bills available.");
+                return;
+            }
+
+            Console.WriteLine("\n--- All Bills ---");
+            foreach (var bill in RestaurantData.Bills)
+            {
+                Console.WriteLine($"time : {bill.Date} name :  {bill.MealName} x{bill.Quantity} Total: ${bill.Total} (Ordered by: {bill.OrderedBy})");
+            }
+        }
+
+        // هون مشان حفظ الفواتير في ملف نصي يتضمن اسم الموظف الحالي
+        public void SaveBillsToFile()
+        {
+            if (RestaurantData.Bills.Count == 0)
+            {
+                Console.WriteLine("No bills to save.");
+                return;
+            }
+
+            string fileName = $"Report_{Username}_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+
+            using (StreamWriter writer = new StreamWriter(fileName))
+            {
+                writer.WriteLine($"=== Report Generated By Employee: {Username} ===");
+                writer.WriteLine($"Date: {DateTime.Now}");
+                writer.WriteLine("---------------------------------------------");
+
+                foreach (var bill in RestaurantData.Bills)
+                {
+                    writer.WriteLine($"Time: {bill.Date} | Meal: {bill.MealName} | Qty: {bill.Quantity} | Total: ${bill.Total} | OrderedBy: {bill.OrderedBy}");
+                }
+            }
+
+            Console.WriteLine($"Bills saved successfully to file: {fileName}");
+        }
+    }
+}
